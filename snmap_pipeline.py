@@ -24,7 +24,7 @@ qccd = 0.80                                                              # CCD e
 gain = 2.8                                                               # CCD gain in e-/ADU
 readn = 1.8                                                              # CCD readout noise in e-
 aside = 15.0                                                             # pixel width in um/px
-fov = 4.46*60.0*60.0                                                     # field-of-view in arcseconds
+fov = 35.0*60.0                                                          # field-of-view in arcseconds
 eta = 0.98                                                               # attenuation per surface norm 1 in grad
 snum = 34                                                                # number of surfaces in grad
 pixn = np.power(4*1024, 2)                                               # total number of pixels in px
@@ -68,6 +68,7 @@ for i in range(0, len(files)):
     roots = np.roots(redenergiesfit)
     roots = roots[np.isreal(roots)]
     roots = np.real(roots)
+    roots = roots[roots > 0.0]
     root = min(roots)
     s = source
     pixin = ceil(np.pi * np.power(root, 2.0) * np.power(aside, -2.0))

@@ -1,5 +1,8 @@
 from astropy.table import Table
 import numpy as np
+from scipy import interpolate
+from math import ceil
+import matplotlib.pyplot as plt
 
 
 def plotter(tabin, fov, pixn):
@@ -15,3 +18,32 @@ def plotter(tabin, fov, pixn):
     dat = [datx, daty, sns]
     reference = Table(names=keys, data=dat)
     reference.pprint(max_width=-1, max_lines=-1)
+    xun = []
+    yun = []
+    for entry in datx:
+        if entry not in xun:
+            xun.append(entry)
+    for entry in daty:
+        if entry not in yun:
+            yun.append(entry)
+    xx, yy = np.meshgrid(xun, yun)
+    zz = np.multiply(xx, 0.0)
+    for i in range(0, len(yun)):
+        for j in range(0, len(xun)):
+            res = 0.0
+            for k in reference:
+                if k['X'] == xun[j] and k['Y'] == yun[i]:
+                    res = float(k['Z'])
+            zz[i][j] = res
+    func = interpolate.interp2d(xx, yy, zz)
+    newx = np.linspace(ceil(min(xun)), ceil(max(xun)))
+    newy = np.linspace(ceil(min(yun)), ceil(max(yun)))
+    newzz = func(newx, newy)
+    newxx, newyy = np.meshgrid(newx, newy)
+    plt.pcolormesh(newxx, newyy, newzz, cmap='RdBu')
+    plt.title('Systematic Uncertainty in Polarization')
+    plt.xlabel('X(px) ref.: O/A')
+    plt.ylabel('Y(px) ref.: O/A')
+    plt.colorbar()
+    plt.show()
+
