@@ -22,10 +22,13 @@ def readcurve(direc, filelist):
             elif linenumber >= 19:
                 datalines.append(line.strip('\n'))
 
-        field = fieldline[-14:]
-        field = field.split(',')
-        xangle = float(field[0])
-        yangle = float(field[1])
+        field = fieldline.split(',')
+        xangle = field[0]
+        yangle = field[1]
+        xangle = xangle[7:]
+        yangle = yangle[1:]
+        xangle = float(xangle)
+        yangle = float(yangle)
         locid = int(ident)
         datasplit = []
         for datapoint in datalines:

@@ -2,10 +2,11 @@ from snmap_readzemaxcurve import *
 import numpy as np
 import matplotlib.pyplot as plt
 from math import ceil
+from snmap_plotter import *
 
-keys = ['ID', 'xangle', 'yangle', 'R', 'A', 'S', 'B', 'T', 'N', 'S/N']
-types = [int, float, float, float, float, float, float, float, float, float]
-units = ['grad', 'deg', 'deg', 'um', 'px', 'ADU', 'ADU', 'ADU', 'ADU', 'grad']
+keys = ['ID', 'xangle', 'yangle', 'R', 'A', 'S', 'B', 'T', 'N', 'S/N', 'sigma p']
+types = [int, float, float, float, float, float, float, float, float, float, float]
+units = ['grad', 'deg', 'deg', 'um', 'px', 'ADU', 'ADU', 'ADU', 'ADU', 'grad', '%']
 mastertable = Table(names=keys, dtype=types)
 for i in range(0, len(keys)):
     mastertable[keys[i]].unit = units[i]
@@ -13,34 +14,37 @@ for i in range(0, len(keys)):
 c = 2.99792458*np.power(10.0, 18.0)                                      # speed of light in angstroem/s
 h = 6.62607004*np.power(10.0, -27.0)                                     # planck constant in erg/Hz
 
-folder = 'C:\\Users\\johny\\Dropbox\\Ensquared_Energy_profiles\\2_inch'  # folder containing the ensquared energy curves
-files = ['field_1.txt', 'field_6.txt']                                   # filenames of the curve files
+folder = 'C:\\Users\\johny\\Dropbox\\Ensquared_Energy_profiles\\3_inch'  # folder containing the ensquared energy curves
+files = ['f1.txt', 'f2.txt', 'f3.txt', 'f4.txt', 'f5.txt',
+         'f6.txt', 'f7.txt', 'f8.txt', 'f9.txt']                         # filenames of the curve files
 texp = 20.0*60.0                                                         # exposure time in seconds
 msky = 18.0                                                              # sky magnitude in AB/arcsec^2
-mstar = 16.0                                                             # stars to be observed magnitude in AB
-qccd = 0.50                                                               # CCD efficiency in e-/photon
+mstar = 16.5                                                             # stars to be observed magnitude in AB
+qccd = 0.80                                                              # CCD efficiency in e-/photon
 gain = 2.8                                                               # CCD gain in e-/ADU
 readn = 1.8                                                              # CCD readout noise in e-
 aside = 15.0                                                             # pixel width in um/px
-fov = 30.0*60.0                                                          # field-of-view in arcseconds
-eta = 0.999                                                              # attenuation per surface norm 1 in grad
-snum = 50                                                                # number of surfaces in grad
+fov = 4.46*60.0*60.0                                                     # field-of-view in arcseconds
+eta = 0.98                                                               # attenuation per surface norm 1 in grad
+snum = 34                                                                # number of surfaces in grad
 pixn = np.power(4*1024, 2)                                               # total number of pixels in px
 dtel = 100.0                                                             # telescope diameter in cm
 sigfil = 1065.6                                                          # filter width in Angstroem
-sigfil = c/sigfil                                                        # filter width in Hz
 lam = 6349                                                               # effective filter wavelength in Angstroems
-nu = c/lam                                                               # effective filter wavelength in Hz
-level = 0.9999                                                           # required source level
+level = 0.9999                                                           # required source level in grad
+exloss = 0.8                                                             # attenuation in grad
 
 read = readcurve(direc=folder, filelist=files)
 
+nu = c/lam                                                               # effective filter wavelength in Hz
+sigfil = c/sigfil                                                        # filter width in Hz
 fsky = 3631.0 * np.power(10.0, -23.0) * np.power(10.0, (-msky/2.5))      # sky flux in erg/s/cm^2/Hz/arcsec^2
 fstar = 3631.0 * np.power(10.0, -23.0) * np.power(10.0, (-mstar/2.5))    # star flux in erg/s/cm^2/Hz
 fB = fsky * np.pi * 0.25 * np.power(dtel, 2.0) * sigfil * texp * (qccd/(gain*h*nu)) *\
-     np.power(fov, 2.0) * np.power(eta, snum) * np.power(pixn, -1.0)                 # background luminosity in ADU/px
+     np.power(fov, 2.0) * np.power(eta, snum) *\
+     np.power(pixn, -1.0) * np.power(4.0, -1.0) * exloss                 # background luminosity in ADU/px
 fS = fstar * np.pi * 0.25 * np.power(dtel, 2.0) * sigfil * texp * (qccd/(gain*h*nu)) *\
-     np.power(eta, snum)                                                 # star total energy in ADU
+     np.power(eta, snum) * np.power(4.0, -1.0) * exloss                  # star total energy in ADU
 source = level * fS                                                      # source counts in ADU
 
 for i in range(0, len(files)):
@@ -71,7 +75,11 @@ for i in range(0, len(files)):
     t = s + b
     n = np.sqrt(t+b+((2*readn*pixin)/gain))
     snr = s/n
-    toap = [curid, xangle, yangle, root, pixin, s, b, t, n, snr]
+    sigmap = np.power(2.0*snr, -1.0)
+    sigmap *= 100
+    toap = [curid, xangle, yangle, root, pixin, s, b, t, n, snr, sigmap]
     mastertable.add_row(toap)
 
+mastertable.write('test.ecsv', format='ascii.ecsv', overwrite=True)
 mastertable.pprint(max_lines=-1, max_width=-1)
+plotter(mastertable, fov, pixn)
